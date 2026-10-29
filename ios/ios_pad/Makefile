@@ -45,6 +45,7 @@ INCLUDES	:= source
 # options for code generation
 #---------------------------------------------------------------------------------
 CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-unused-variable -fno-builtin
+CFLAGS	:= -DPACKETLOGGER
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
