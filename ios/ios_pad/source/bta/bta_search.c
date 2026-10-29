@@ -103,7 +103,7 @@ void BTA_DmSearch_hook(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback)
 
     // only search for peripherals
     // BLE filtering happens in `btm_ble_is_discoverable_hook`
-    p_dm_inq->filter_type = BTM_FILTER_COND_DEVICE_CLASS;
+    p_dm_inq->filter_type = BTM_CLR_INQUIRY_FILTER;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[0] = 0;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[1] = BTM_COD_MAJOR_CLASS_MASK;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[2] = 0;
