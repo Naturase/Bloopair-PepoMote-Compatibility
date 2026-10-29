@@ -22,6 +22,24 @@
 #define PRO_CONTROLLER_NAME "Nintendo RVL-CNT-01-UC"
 
 void (*const real_bta_search_callback)(uint8_t event, void *p_data) = (void*) 0x11f401a8;
+
+#define WIIMOTE_NAME "Nintendo RVL-CNT-01"
+#define BTM_COD_MAJOR_PHONE 0x02
+
+// Devices found during this search that announce themselves as phones (PepoMote)
+static BD_ADDR phone_addrs[8];
+static uint8_t phone_count = 0;
+
+static int isKnownPhone(const uint8_t* addr)
+{
+    for (int i = 0; i < phone_count; i++) {
+        if (memcmp(phone_addrs[i], addr, sizeof(BD_ADDR)) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void bta_search_callback(uint8_t event, void *p_data)
 {
     DEBUG_PRINT("bta_search_callback called %u %p\n", event, p_data);
@@ -34,13 +52,28 @@ void bta_search_callback(uint8_t event, void *p_data)
         if (res->device_type == BT_DEVICE_TYPE_BLE) {
             res->remt_name_not_required = 1;
         }
+
+        // PepoMote: remember phones so they are never registered as Pro Controllers
+        if ((res->dev_class[1] & BTM_COD_MAJOR_CLASS_MASK) == BTM_COD_MAJOR_PHONE &&
+            !isKnownPhone(res->bd_addr)) {
+            memcpy(phone_addrs[phone_count % 8], res->bd_addr, sizeof(BD_ADDR));
+            if (phone_count < 8) {
+                phone_count++;
+            }
+        }
         break;
     }
     
     case BTA_DM_DISC_RES_EVT: {
         tBTA_DM_DISC_RES* res = (tBTA_DM_DISC_RES*) p_data;
 
-        if (res->result == 0 && !isOfficialName((const char*) res->bd_name)) {
+        if (res->result == 0 && isKnownPhone(res->bd_addr)) {
+            // PepoMote: a phone is always registered as a Wii Remote,
+            // even if its name did not arrive in time
+            DEBUG_PRINT("[%s] phone \"%s\", registering as Wii Remote\n",
+                bdaddr_to_string(res->bd_addr), res->bd_name);
+            memcpy(res->bd_name, WIIMOTE_NAME, sizeof(WIIMOTE_NAME));
+        } else if (res->result == 0 && !isOfficialName((const char*) res->bd_name)) {
             DEBUG_PRINT("[%s] \"%s\" is non official, replacing name...\n",
                 bdaddr_to_string(res->bd_addr), res->bd_name);
             // replace device name
@@ -70,7 +103,7 @@ void BTA_DmSearch_hook(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback)
 
     // only search for peripherals
     // BLE filtering happens in `btm_ble_is_discoverable_hook`
-    p_dm_inq->filter_type = BTM_CLR_INQUIRY_FILTER;
+    p_dm_inq->filter_type = BTM_FILTER_COND_DEVICE_CLASS;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[0] = 0;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[1] = BTM_COD_MAJOR_CLASS_MASK;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[2] = 0;
