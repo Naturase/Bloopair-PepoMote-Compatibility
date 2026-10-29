@@ -131,7 +131,7 @@ void run_ios_pad_patches(void)
     *(volatile uint32_t *) 0x11f2498c = 0xe1a00000; // mov r0, r0
     *(volatile uint32_t *) 0x11f29ce8 = ARM_BL(0x11f29ce8, l2cu_release_lcb_before_btm_remove_sco_links_hook);
 
-// #define PACKETLOGGER
+#define PACKETLOGGER
 #ifdef PACKETLOGGER
     *(volatile uint32_t *) 0x11f2fe90 = ARM_B(0x11f2fe90, data_ind_hook);
     *(volatile uint32_t *) 0x11f3ba18 = ARM_B(0x11f3ba18, uusb_transfer_hook);
